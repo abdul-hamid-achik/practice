@@ -1,0 +1,24 @@
+{
+  "name": "assets",
+  "authors": [
+    "abdul hamid achik lopez <abdulachik@gmail.com>"
+  ],
+  "description": "",
+  "main": "",
+  "license": "MIT",
+  "homepage": "",
+  "private": true,
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "jquery": "2",
+    "bootstrap": "^3.3.7",
+    "summernote": "^0.8.2",
+    "neon": "^2.0.0"
+  }
+}
