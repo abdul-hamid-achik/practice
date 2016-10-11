@@ -9,30 +9,197 @@ var jsonItems = {
 
 UI = {};
 
-Class(UI, 'Select').inherits(Widget).includes(CustomEventSupport)({
-    elementClass: 'bs-select-widget',
-    ELEMENT_CLASS: 'dropdown',
-    HTML: `<div>
-            <h4></h4>
-            <select class="selectpicker"></select>
-          </div>`,
+Class(UI, 'ColorPicker').inherits(Widget).includes(BubblingSupport)({
+  elementClass: 'colorpicker__container',
+  html: `<div>
+    <h4 class="title"></h4>
+    <div class="input-group">
+      <input placeholder="Select a color" class="form-control" type="text">
+      <span class="input-group-btn">
+        <button class="btn btn-default">Ok</button>
+      </span>
+    </div>
+    <div class="selections--list"></div>
+    <select multiple data-selected-text-format="count" data-width="147px" class="selectpicker">
+    </select>
+  </div>`,
+  prototype: {
+    $addBtn: null,
+    $colorpicker: null,
+    $selections: null,
+
+    init: function init(config){
+      Widget.prototype.init.call(this, config);
+
+      var that = this;
+      this.element.find('h4').text(config.title || 'Color Picker');
+      this.$colorpicker = this.element.find('input');
+      this.$span = this.element.find('span');
+      this.$addBtn = this.element.find('span > button');
+      this.$selections = this.element.find('.selections--list')
+      this.$select = this.element.find('select');
+      this.$span.hide();
+      $(this.$colorpicker).colorpicker();
+      var colorpicker = this.$colorpicker;
+      $(this.$colorpicker).on('changeColor', function(event){
+        console.log("Color: ", $(colorpicker).colorpicker('getValue'));
+        that.$span.show();
+      });
+      if (!config.multiselect) {
+        this.$select.remove();
+        this.$addBtn.on('click', this.addColor.bind(this));
+      } else {
+        this.$selections.remove();
+        $(this.$select).selectpicker();
+        this.$label = this.element.find('.bootstrap-select button .filter-option');
+        this.$inner = this.element.find('.bootstrap-select');
+        this.$inner.hide();
+        this.$addBtn.on('click', function(event){
+          var option, content, color = $(that.$colorpicker).colorpicker('getValue');
+          content = "<div style='background-color:"+color+";width:90%;height:18px;'></div>"
+          option = $('<option data-content="' + content + '" value="'+color+'"></option>');
+          that.$select.append(option);
+          that.$select.selectpicker('refresh');
+          that.$inner.show();
+          that.$span.hide();
+          that.$colorpicker.val(null);
+          that.$select.selectpicker('selectAll');
+
+          if (that.getValues().length >= 5) {
+            that.hideStuff();
+          }
+        });
+        $(this.$select).on('change', function(event){
+          var options = $(event.target.options);
+          options.each(function (index, option) {
+            if (!option.selected) {
+              option.remove();
+            }
+          });
+          console.log(that.$label[0].innerHTML = that.$select.selectpicker('val').length + " selected");
+          if (that.getValues().length - 1 < 5) {
+            that.showStuff();
+          }
+          that.$select.selectpicker('refresh');
+        });
+      }
+      return this;
+    },
+    addColor: function addColor(event){
+      event.preventDefault();
+      var that = this;
+      this.$span.hide();
+      this.appendChild(new UI.ColorThumbnail({
+        name: 'thumbnail',
+        color: $(this.$colorpicker).colorpicker('getValue'),
+        id: this.children.length + 1
+      })).render(this.$selections).bind('click', function(event){
+        if (that.children.length - 1 < 5){
+          that.showStuff();
+        }
+      });
+
+      this.$colorpicker.val(null);
+
+      if (this.children.length >= 5) {
+        this.hideStuff();
+      }
+      return this;
+    },
+
+    hideStuff: function hideStuff(){
+      this.$colorpicker.hide();
+      return this;
+    },
+
+    showStuff: function showStuff(){
+      this.$colorpicker.show();
+      this.$span.hide();
+      return this;
+    },
+
+    getValues: function getValues(){
+      if (this.multiselect){
+        return this.$select.selectpicker('val');
+      } else {
+        return this.children.map(function(child){
+          return child.color
+        });
+      }
+    }
+  }
+});
+
+Class(UI, 'ColorThumbnail').inherits(Widget).includes(BubblingSupport)({
+  elementClass: 'color__thumbnail',
+  html: '<div></div>',
+  prototype: {
+    $item: null,
+    init: function init(config){
+      Widget.prototype.init.call(this, config);
+      this.element.css('display', 'block');
+      this.element.bind('click', this.clickHandler.bind(this));
+      var that = this;
+      this.element.mouseover(function(){
+        that.element.css('opacity', '0.7');
+      });
+      this.element.mouseout(function(){
+        that.element.css('opacity', '1');
+      });
+      this.changeColor(config.color || 'white');
+    },
+    clickHandler: function clickHandler(event) {
+      event.preventDefault();
+      console.log("CLICK", this.name, this.id);
+      this.dispatch('click');
+      this.destroy();
+      return this;
+    },
+    changeColor : function changeColor(color){
+      this.element.css('background', color);
+      return this;
+    }
+  }
+});
+
+Class(UI, 'Select').inherits(Widget).includes(BubblingSupport)({
+    ELEMENT_CLASS: 'sidebar__filter-container multiselect',
+    HTML: `<header>
+              <h4 class='title'></h4>
+              <select data-width="147px" data-selected-text-format="count" class="selectpicker">
+                <option style="display:none" disabled selected hidden>Nothing selected</option>
+              </select>
+          </header>`,
     prototype: {
       title: null,
       $select: null,
       $inner: null,
       $items: null,
-      selectedValues: [],
+      $label: null,
+      selectedValues: {},
       init: function(config){
           Widget.prototype.init.call(this, config);
-          // option to set the multiselect to multiple or to single
           this.title = this.element.find('h4');
           this.$select = this.element.find('select');
           this._configure(config);
           this.$select.selectpicker();
+          this.selectedValues[config.name] = config.multiple ? [] : null;
           this.$inner = this.element.find('.dropdown-menu.inner');
           this.$items = this.$inner.find('> li');
+          this.$label = this.element.find('.bootstrap-select button .filter-option');
+          var multiselect = this;
+          this.element.addClass(config.name);
+          this.$select.bind('change', function(event){
+            event.preventDefault();
+            if (multiselect.selectedValues[multiselect.name].constructor === Array) {
+              if (multiselect.selectedValues[multiselect.name].length > 0) {
+                multiselect.$label[0].innerHTML = multiselect.selectedValues[multiselect.name].length + ' selected';
+              } else {
+                multiselect.$label[0].innerHTML = 'Nothing selected';
+              }
+            }
+          });
           this._bindEvents();
-
       },
       _configure: function _configure(config){
         if (config.multiple){
@@ -41,22 +208,26 @@ Class(UI, 'Select').inherits(Widget).includes(CustomEventSupport)({
         if (config.title){
           this.title.text(config.title);
         }
-
         this._refresh();
       },
       getSelectedItems: function getSelectedItems(){
-        // return this.$items.filter('.selected');
-        return this.selectedValues;
+        return this.selectedValues[this.name];
       },
       _addToSelectedItems: function _addToSelectedItems(item){
-        this.selectedValues.push(item);
-        this.dispatch('change');
+        if (Object.prototype.toString.call( this.selectedValues[this.name] ) === '[object Array]'){
+          this.selectedValues[this.name].push(item);
+        } else {
+          this.selectedValues[this.name] = item;
+        }
         return this;
       },
       _removeFromSelectedItems: function _removeFromSelectedItems(item){
-        var index = this.selectedValues.indexOf(item);
-        this.selectedValues.splice(index, 1);
-        this.dispatch('change');
+        if (Object.prototype.toString.call( this.selectedValues[this.name] ) === '[object Array]'){
+          var index = this.selectedValues[this.name].indexOf(item);
+          this.selectedValues[this.name].splice(index, 1);
+        } else {
+          this.selectedValues[this.name] = null;
+        }
         return this;
       },
       _bindEvents: function _bindEvents(){
@@ -65,13 +236,41 @@ Class(UI, 'Select').inherits(Widget).includes(CustomEventSupport)({
         return this;
       },
       _itemClickHandler: function _itemClickHandler(e){
-        var value = $(e.target).text();
-        if(this.selectedValues.indexOf(value) == -1){
+        var value;
+        console.log(e.target.nodeName, e.target);
+        switch (e.target.nodeName){
+          case "A":
+            value = $(e.target).find('span').text()
+          break;
+          case "I":
+            value = $(e.target.parentNode).text()
+          break;
+          case "IMG":
+            value = $(e.target.parentNode).text()
+          break;
+          case "SPAN":
+            value = $(e.target).text();
+          break;
+          case "P":
+            value = $(e.target).text();
+          break;
+          case "STRONG":
+            value = $(e.target).text();
+          break;
+        }
+        if (Object.prototype.toString.call( this.selectedValues[this.name] ) === '[object Array]'){
+          if(this.selectedValues[this.name].indexOf(value) === -1){
+            this._addToSelectedItems(value);
+          }
+          else{
+            this._removeFromSelectedItems(value);
+          }
+        } else {
+          this._removeFromSelectedItems(value);
           this._addToSelectedItems(value);
         }
-        else{
-          this._removeFromSelectedItems(value);
-        }
+        this.dispatch('change');
+        console.log(value, this.selectedValues[this.name]);
         return this;
       },
       clearItemsList: function clearItemsList(){
@@ -83,12 +282,15 @@ Class(UI, 'Select').inherits(Widget).includes(CustomEventSupport)({
       },
       loadItems: function loadItems(items){
         var select = this.$select;
-        // before render load items
         items.forEach(function(item){
-            // each option has to have a click option??
-          var content = "<span><img src='http://placehold.it/24x24'> "+item.data+"</span>"
-          var option = $('<option class="ms-options" id="ms-bs-'+item.id+'" data-content="'+
-          content +'" value="'+item.id+'"></option>');
+          var content, option;
+          if (!item.color){
+            content = "<span><img class='img-responsive' style='width:48px; margin:0 auto; margin-top:3px' src='"+item.image+"'><p style='display:none;'>"+item.name+"</p></span>"
+            option = $('<option class="options" title="'+item.name+'" data-content="' + content + '" value="'+item.name+'"></option>');
+          } else {
+            content = "<span><p style='color:"+item.color+";text-align:center;'><strong>"+item.name+"</strong></p></span>"
+            option = $('<option class="options" title="'+item.name+'" data-content="' + content + '" value="'+item.color+'"></option>');
+          }
           select.append(option);
         });
         this._refresh();
@@ -99,15 +301,14 @@ Class(UI, 'Select').inherits(Widget).includes(CustomEventSupport)({
       },
       _refresh: function _refresh(){
           this.$select.selectpicker('refresh');
-      },
-      _activate: function () {
-        Widget.prototype._activate.call(this);
-      },
-      _deactivate: function () {
-        Widget.prototype._deactivate.call(this);
       }
     }
 });
+
+var colorpicker = new UI.ColorPicker({
+  name: 'colorpicker'
+});
+colorpicker.render($(document.body));
 
 Class(UI, 'Sidebar').inherits(Widget).includes(CustomEventSupport)({
   HTML: '<aside></aside>',
@@ -156,10 +357,10 @@ Class(UI, 'Sidebar').inherits(Widget).includes(CustomEventSupport)({
 
 var sidebar = new UI.Sidebar();
 sidebar.render($(document.body));
-
-sidebar.bind("change", function(ev){
-  suggestionsList.activateAboveButton();
-});
+//
+// sidebar.bind("change", function(ev){
+//   suggestionsList.activateAboveButton();
+// });
 
 Class(UI, 'SuggestionsList').inherits(Widget).includes(CustomEventSupport)({
   HTML: `<section style="display:inline-block">
@@ -294,21 +495,47 @@ Class(UI, 'Suggestion').inherits(Widget).includes(CustomEventSupport)({
   }
 });
 
-var suggestionsList = new UI.SuggestionsList();
-suggestionsList.render($(document.body));
-
-// send id to placeit
-// suggestionsList.bind('click:suggestion', function(evt){
-// });
-
-// Class(UI, 'Button').inherits(Widget)({
-//   HTML: `<div>
-//     <button><button>
-//   </div>`,
-//   elementClass: 'button-widget',
-//   prototype: {
-//     init: function init(config){
+// var suggestionsList = new UI.SuggestionsList();
+// suggestionsList.render($(document.body));
 //
-//     }
-//   }
-// });
+
+Class(UI, 'Parent').inherits(Widget).includes(BubblingSupport)({
+  HTML: '<div><h1>hey!</h1></div>',
+  prototype:{
+    init: function init(config) {
+      Widget.prototype.init.call(this, config);
+
+      this.appendChild(new UI.Child({ name: 'child1' }))
+        .render(this.element);
+
+      this.appendChild(new UI.Child({ name: 'child2' }))
+        .render(this.element);
+
+      this.appendChild(new UI.Child({ name: 'child3' }))
+        .render(this.element);
+
+      this.bind('click', function(event){
+        console.log(event);
+      });
+
+
+    }
+  }
+});
+
+Class(UI, 'Child').inherits(Widget).includes(BubblingSupport)({
+  HTML: '<div><h4>KHEE!</h4></div>',
+  prototype: {
+    init: function init(config){
+      Widget.prototype.init.call(this);
+      var child = this;
+      this.element.on('click', function(evt){
+        console.log(evt);
+        child.dispatch('click', { data: 'asdas' });
+      });
+    }
+  }
+});
+
+var parent = new UI.Parent({name:"parent"});
+parent.render($(document.body));
