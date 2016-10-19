@@ -115,7 +115,7 @@ Class(UI, 'CaptionWidget').inherits(Widget)({
                 }
             });
 
-            this.setValue(config.value || '');
+            this.setValue(config.value || null);
             this.inputElement.bind('focus', function() {
                 sSCaption.activate();
             });

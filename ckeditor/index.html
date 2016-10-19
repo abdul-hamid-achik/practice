@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>ckeditor test</title>
+    <script type="text/javascript" src="/assets/bower_components/ckeditor/ckeditor.js">
+    </script>
+    <script src="/assets/bower_components/jquery/dist/jquery.min.js" charset="utf-8"></script>
+    <style type="text/css" media="screen">
+      .heading-title {
+        font-size: 26px;
+        text-decoration: none;
+      }
+
+      .cke_button__headingbutton_icon, .cke_button__savebutton_icon {
+        display: none !important; /*without icon*/
+      }
+
+      .cke_button__headingbutton_label, .cke_button__savebutton_label {
+        display : inline !important; /*show the text label*/
+      }
+      #cke_ckeditor {
+        width: 400px;
+      }
+      #cke_1_top {
+        background: white;
+      }
+      #cke_1_toolbox span span a{
+        background: white;
+        font-weight: 900;
+        border-bottom-color: white;
+      }
+    </style>
+  </head>
+  <body>
+    <textarea name="ckeditor" rows="8" cols="40" id="ckeditor"></textarea>
+    <input type="text" id="cke_input">
+    <script src="/assets/js/main.js" charset="utf-8"></script>
+  </body>
+</html>

@@ -1,0 +1,18 @@
+{
+  "name": "assets",
+  "homepage": "https://github.com/aachik/practice",
+  "authors": [
+    "Abdul Hamid <abdulachik@gmail.com>"
+  ],
+  "description": "",
+  "main": "",
+  "license": "MIT",
+  "private": true,
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ]
+}
